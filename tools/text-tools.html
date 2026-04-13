@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本工具 - JSON格式化</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #4a90d9; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; border: none; background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .tab.active { background: #4a90d9; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tool-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .tool-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #333; }
+        textarea { width: 100%; height: 200px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; resize: vertical; }
+        textarea:focus { outline: none; border-color: #4a90d9; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .btn-primary { background: #4a90d9; color: #fff; }
+        .btn-primary:hover { background: #3a7bc8; }
+        .btn-success { background: #34c759; color: #fff; }
+        .btn-success:hover { background: #2db14a; }
+        .btn-secondary { background: #fff; color: #333; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #f5f5f5; }
+        .result { margin-top: 15px; }
+        .result-label { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .result-content { background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow: auto; }
+        .diff-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .diff-panel h4 { margin-bottom: 10px; color: #333; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← 返回导航</a>
+        <h1>📝 文本工具</h1>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="json">JSON 格式化</button>
+            <button class="tab" data-tab="compare">文本对比</button>
+            <button class="tab" data-tab="encode">编码转换</button>
+        </div>
+        
+        <div id="json" class="tab-content active">
+            <div class="tool-section">
+                <div class="tool-title">JSON 格式化 / 压缩</div>
+                <textarea id="jsonInput" placeholder="请输入 JSON 字符串..."></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="formatJson()">格式化</button>
+                    <button class="btn btn-success" onclick="compressJson()">压缩</button>
+                    <button class="btn btn-secondary" onclick="clearJson()">清空</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">结果：</div>
+                    <div class="result-content" id="jsonResult"></div>
+                </div>
+            </div>
+            <div class="tool-section">
+                <div class="tool-title">JSON 校验</div>
+                <textarea id="jsonValidateInput" placeholder="请输入 JSON 字符串进行校验..."></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="validateJson()">校验</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">校验结果：</div>
+                    <div class="result-content" id="jsonValidateResult"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="compare" class="tab-content">
+            <div class="tool-section">
+                <div class="tool-title">文本对比 (Diff)</div>
+                <div class="diff-container">
+                    <div class="diff-panel">
+                        <h4>原文：</h4>
+                        <textarea id="diffLeft" placeholder="请输入第一段文本..."></textarea>
+                    </div>
+                    <div class="diff-panel">
+                        <h4>修改后：</h4>
+                        <textarea id="diffRight" placeholder="请输入第二段文本..."></textarea>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="compareText()">对比</button>
+                    <button class="btn btn-secondary" onclick="clearDiff()">清空</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">对比结果（相同部分绿色，差异部分红色）：</div>
+                    <div class="result-content" id="diffResult"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="encode" class="tab-content">
+            <div class="tool-section">
+                <div class="tool-title">编码转换</div>
+                <textarea id="encodeInput" placeholder="请输入需要转换的文本..."></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="toBase64()">转换为 Base64</button>
+                    <button class="btn btn-primary" onclick="fromBase64()">从 Base64 解码</button>
+                    <button class="btn btn-primary" onclick="toUrlEncode()">URL 编码</button>
+                    <button class="btn btn-primary" onclick="fromUrlEncode()">URL 解码</button>
+                    <button class="btn btn-primary" onclick="toHtmlEntity()">HTML 实体编码</button>
+                    <button class="btn btn-primary" onclick="fromHtmlEntity()">HTML 实体解码</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">结果：</div>
+                    <div class="result-content" id="encodeResult"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+        
+        function formatJson() {
+            try {
+                const input = document.getElementById('jsonInput').value;
+                const obj = JSON.parse(input);
+                document.getElementById('jsonResult').textContent = JSON.stringify(obj, null, 2);
+                showToast('格式化成功');
+            } catch (e) {
+                document.getElementById('jsonResult').textContent = '错误: ' + e.message;
+                showToast('JSON 格式错误');
+            }
+        }
+        
+        function compressJson() {
+            try {
+                const input = document.getElementById('jsonInput').value;
+                const obj = JSON.parse(input);
+                document.getElementById('jsonResult').textContent = JSON.stringify(obj);
+                showToast('压缩成功');
+            } catch (e) {
+                document.getElementById('jsonResult').textContent = '错误: ' + e.message;
+                showToast('JSON 格式错误');
+            }
+        }
+        
+        function clearJson() {
+            document.getElementById('jsonInput').value = '';
+            document.getElementById('jsonResult').textContent = '';
+        }
+        
+        function validateJson() {
+            try {
+                const input = document.getElementById('jsonValidateInput').value;
+                JSON.parse(input);
+                document.getElementById('jsonValidateResult').textContent = '✓ JSON 格式正确';
+                document.getElementById('jsonValidateResult').style.color = '#34c759';
+                showToast('校验通过');
+            } catch (e) {
+                document.getElementById('jsonValidateResult').textContent = '✗ 错误: ' + e.message;
+                document.getElementById('jsonValidateResult').style.color = '#ff3b30';
+                showToast('校验失败');
+            }
+        }
+        
+        function compareText() {
+            const left = document.getElementById('diffLeft').value;
+            const right = document.getElementById('diffRight').value;
+            
+            if (left === right) {
+                document.getElementById('diffResult').innerHTML = '<span style="color: #34c759;">两段文本完全相同</span>';
+                return;
+            }
+            
+            const leftLines = left.split('\n');
+            const rightLines = right.split('\n');
+            let result = '';
+            
+            const maxLines = Math.max(leftLines.length, rightLines.length);
+            for (let i = 0; i < maxLines; i++) {
+                const l = leftLines[i] || '';
+                const r = rightLines[i] || '';
+                if (l === r) {
+                    result += `<div style="color: #34c759;">${escapeHtml(l)}</div>`;
+                } else {
+                    if (l) result += `<div style="color: #ff3b30;">- ${escapeHtml(l)}</div>`;
+                    if (r) result += `<div style="color: #34c759;">+ ${escapeHtml(r)}</div>`;
+                }
+            }
+            
+            document.getElementById('diffResult').innerHTML = result;
+            showToast('对比完成');
+        }
+        
+        function escapeHtml(text) {
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        
+        function clearDiff() {
+            document.getElementById('diffLeft').value = '';
+            document.getElementById('diffRight').value = '';
+            document.getElementById('diffResult').innerHTML = '';
+        }
+        
+        function toBase64() {
+            try {
+                const input = document.getElementById('encodeInput').value;
+                document.getElementById('encodeResult').textContent = btoa(unescape(encodeURIComponent(input)));
+                showToast('转换成功');
+            } catch (e) {
+                document.getElementById('encodeResult').textContent = '错误: ' + e.message;
+            }
+        }
+        
+        function fromBase64() {
+            try {
+                const input = document.getElementById('encodeInput').value;
+                document.getElementById('encodeResult').textContent = decodeURIComponent(escape(atob(input)));
+                showToast('解码成功');
+            } catch (e) {
+                document.getElementById('encodeResult').textContent = '错误: ' + e.message;
+            }
+        }
+        
+        function toUrlEncode() {
+            const input = document.getElementById('encodeInput').value;
+            document.getElementById('encodeResult').textContent = encodeURIComponent(input);
+            showToast('编码成功');
+        }
+        
+        function fromUrlEncode() {
+            try {
+                const input = document.getElementById('encodeInput').value;
+                document.getElementById('encodeResult').textContent = decodeURIComponent(input);
+                showToast('解码成功');
+            } catch (e) {
+                document.getElementById('encodeResult').textContent = '错误: ' + e.message;
+            }
+        }
+        
+        function toHtmlEntity() {
+            const input = document.getElementById('encodeInput').value;
+            let result = '';
+            for (let i = 0; i < input.length; i++) {
+                result += '&#' + input.charCodeAt(i) + ';';
+            }
+            document.getElementById('encodeResult').textContent = result;
+            showToast('编码成功');
+        }
+        
+        function fromHtmlEntity() {
+            const input = document.getElementById('encodeInput').value;
+            const result = input.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(code));
+            document.getElementById('encodeResult').textContent = result;
+            showToast('解码成功');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片工具 - Base64/缩放</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #4a90d9; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; border: none; background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .tab.active { background: #4a90d9; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tool-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .tool-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #333; }
+        .upload-area { border: 2px dashed #ddd; border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 15px; }
+        .upload-area:hover { border-color: #4a90d9; background: #f0f7ff; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 8px; color: #666; font-size: 14px; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        input:focus, select:focus { outline: none; border-color: #4a90d9; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .btn-primary { background: #4a90d9; color: #fff; }
+        .btn-primary:hover { background: #3a7bc8; }
+        .btn-success { background: #34c759; color: #fff; }
+        .btn-success:hover { background: #2db14a; }
+        .btn-secondary { background: #fff; color: #333; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #f5f5f5; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .preview-container { margin-top: 20px; text-align: center; }
+        .preview-container img { max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+        .result { margin-top: 15px; }
+        .result-label { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .result-content { background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; max-height: 200px; overflow: auto; word-break: break-all; }
+        .image-info { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
+        .info-item { background: #f8f9fa; padding: 12px; border-radius: 8px; }
+        .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .info-value { font-size: 14px; font-weight: 600; color: #333; }
+        #fileInput { display: none; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← 返回导航</a>
+        <h1>🎨 图片工具</h1>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="base64">图片转 Base64</button>
+            <button class="tab" data-tab="resize">图片缩放</button>
+        </div>
+        
+        <div id="base64" class="tab-content active">
+            <div class="tool-section">
+                <div class="tool-title">图片转 Base64</div>
+                <div class="upload-area" id="uploadArea">
+                    <div>📁 点击选择图片或拖拽图片到此处</div>
+                </div>
+                <input type="file" id="fileInput" accept="image/*">
+                
+                <div class="image-info" id="imageInfo"></div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="toBase64Btn" disabled onclick="imageToBase64()">转换为 Base64</button>
+                    <button class="btn btn-success" id="copyBase64Btn" disabled onclick="copyBase64()">复制 Base64</button>
+                    <button class="btn btn-secondary" onclick="clearImage()">清空</button>
+                </div>
+                
+                <div class="result">
+                    <div class="result-label">Base64 结果：</div>
+                    <div class="result-content" id="base64Result"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="resize" class="tab-content">
+            <div class="tool-section">
+                <div class="tool-title">图片缩放</div>
+                <div class="upload-area" id="uploadAreaResize">
+                    <div>📁 点击选择图片或拖拽图片到此处</div>
+                </div>
+                <input type="file" id="fileInputResize" accept="image/*">
+                
+                <div class="input-group">
+                    <label>缩放方式：</label>
+                    <select id="resizeType">
+                        <option value="scale">按比例缩放 (%)</option>
+                        <option value="width">按宽度 (px)</option>
+                        <option value="height">按高度 (px)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group" id="scaleGroup">
+                    <label>缩放比例：</label>
+                    <input type="number" id="scalePercent" value="50" min="1" max="500">
+                </div>
+                
+                <div class="input-group" id="widthGroup" style="display:none;">
+                    <label>目标宽度：</label>
+                    <input type="number" id="targetWidth" value="800" min="1">
+                </div>
+                
+                <div class="input-group" id="heightGroup" style="display:none;">
+                    <label>目标高度：</label>
+                    <input type="number" id="targetHeight" value="600" min="1">
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="resizeBtn" disabled onclick="resizeImage()">缩放图片</button>
+                    <button class="btn btn-success" id="downloadResizeBtn" disabled onclick="downloadResize()">下载图片</button>
+                </div>
+                
+                <div class="preview-container" id="resizePreview"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        let currentImage = null;
+        let currentImageData = null;
+        let resizedImageData = null;
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+        
+        document.getElementById('resizeType').addEventListener('change', function() {
+            document.getElementById('scaleGroup').style.display = this.value === 'scale' ? 'block' : 'none';
+            document.getElementById('widthGroup').style.display = this.value === 'width' ? 'block' : 'none';
+            document.getElementById('heightGroup').style.display = this.value === 'height' ? 'block' : 'none';
+        });
+        
+        function handleImageFile(file, type) {
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('请选择图片文件');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    
+                    if (type === 'base64') {
+                        document.getElementById('toBase64Btn').disabled = false;
+                        document.getElementById('imageInfo').innerHTML = `
+                            <div class="info-item"><div class="info-label">文件名</div><div class="info-value">${file.name}</div></div>
+                            <div class="info-item"><div class="info-label">尺寸</div><div class="info-value">${img.width} × ${img.height}</div></div>
+                            <div class="info-item"><div class="info-label">大小</div><div class="info-value">${(file.size / 1024).toFixed(2)} KB</div></div>
+                        `;
+                    } else {
+                        document.getElementById('resizeBtn').disabled = false;
+                        document.getElementById('targetWidth').value = img.width;
+                        document.getElementById('targetHeight').value = img.height;
+                        document.getElementById('scalePercent').value = 50;
+                        document.getElementById('resizePreview').innerHTML = `<img src="${e.target.result}" alt="原图">`;
+                    }
+                    
+                    currentImageData = e.target.result;
+                    showToast('图片已加载');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        document.getElementById('uploadArea').addEventListener('click', () => document.getElementById('fileInput').click());
+        document.getElementById('fileInput').addEventListener('change', (e) => handleImageFile(e.target.files[0], 'base64'));
+        
+        document.getElementById('uploadAreaResize').addEventListener('click', () => document.getElementById('fileInputResize').click());
+        document.getElementById('fileInputResize').addEventListener('change', (e) => handleImageFile(e.target.files[0], 'resize'));
+        
+        function imageToBase64() {
+            if (!currentImageData) {
+                showToast('请先选择图片');
+                return;
+            }
+            document.getElementById('base64Result').textContent = currentImageData;
+            document.getElementById('copyBase64Btn').disabled = false;
+            showToast('转换成功');
+        }
+        
+        function copyBase64() {
+            const text = document.getElementById('base64Result').textContent;
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
+            }
+        }
+        
+        function clearImage() {
+            currentImage = null;
+            currentImageData = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('imageInfo').innerHTML = '';
+            document.getElementById('base64Result').textContent = '';
+            document.getElementById('toBase64Btn').disabled = true;
+            document.getElementById('copyBase64Btn').disabled = true;
+        }
+        
+        function resizeImage() {
+            if (!currentImage) {
+                showToast('请先选择图片');
+                return;
+            }
+            
+            const type = document.getElementById('resizeType').value;
+            let newWidth, newHeight;
+            
+            if (type === 'scale') {
+                const scale = parseInt(document.getElementById('scalePercent').value) / 100;
+                newWidth = Math.round(currentImage.width * scale);
+                newHeight = Math.round(currentImage.height * scale);
+            } else if (type === 'width') {
+                newWidth = parseInt(document.getElementById('targetWidth').value);
+                newHeight = Math.round(currentImage.height * (newWidth / currentImage.width));
+            } else {
+                newHeight = parseInt(document.getElementById('targetHeight').value);
+                newWidth = Math.round(currentImage.width * (newHeight / currentImage.height));
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(currentImage, 0, 0, newWidth, newHeight);
+            
+            resizedImageData = canvas.toDataURL('image/png');
+            document.getElementById('resizePreview').innerHTML = `<img src="${resizedImageData}" alt="缩放后">`;
+            document.getElementById('downloadResizeBtn').disabled = false;
+            showToast(`已缩放为 ${newWidth} × ${newHeight}`);
+        }
+        
+        function downloadResize() {
+            if (!resizedImageData) return;
+            const link = document.createElement('a');
+            link.download = `resized_${Date.now()}.png`;
+            link.href = resizedImageData;
+            link.click();
+            showToast('图片已下载');
+        }
+    </script>
+</body>
+</html>

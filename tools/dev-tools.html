@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开发工具 - 正则/Cron</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #4a90d9; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; border: none; background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .tab.active { background: #4a90d9; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tool-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .tool-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #333; }
+        textarea { width: 100%; height: 120px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; resize: vertical; }
+        textarea:focus { outline: none; border-color: #4a90d9; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 8px; color: #666; font-size: 14px; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        input[type="text"]:focus { outline: none; border-color: #4a90d9; }
+        .checkbox-group { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
+        .checkbox-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .btn-primary { background: #4a90d9; color: #fff; }
+        .btn-primary:hover { background: #3a7bc8; }
+        .btn-secondary { background: #fff; color: #333; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #f5f5f5; }
+        .result { margin-top: 15px; }
+        .result-label { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .result-content { background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow: auto; }
+        .match-item { padding: 8px 12px; background: #e8f5e9; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #4caf50; }
+        .match-item.no-match { background: #ffebee; border-left-color: #f44336; }
+        .match-text { font-weight: 600; }
+        .match-index { color: #666; font-size: 12px; }
+        .cron-preview { margin-top: 15px; }
+        .cron-item { padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; }
+        .cron-time { font-weight: 600; color: #333; }
+        .cron-desc { color: #666; font-size: 14px; margin-top: 5px; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← 返回导航</a>
+        <h1>📦 开发工具</h1>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="regex">正则测试</button>
+            <button class="tab" data-tab="cron">Cron 表达式</button>
+        </div>
+        
+        <div id="regex" class="tab-content active">
+            <div class="tool-section">
+                <div class="tool-title">正则表达式测试</div>
+                <div class="input-group">
+                    <label>正则表达式：</label>
+                    <input type="text" id="regexPattern" placeholder="例如：\d+ 或 ^\w+@\w+\.\w+$">
+                </div>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="regexG"> 全局匹配 (g)</label>
+                    <label><input type="checkbox" id="regexI" checked> 忽略大小写 (i)</label>
+                    <label><input type="checkbox" id="regexM"> 多行模式 (m)</label>
+                </div>
+                <div class="input-group">
+                    <label>测试文本：</label>
+                    <textarea id="regexText" placeholder="请输入要测试的文本..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="testRegex()">测试匹配</button>
+                    <button class="btn btn-secondary" onclick="clearRegex()">清空</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">匹配结果：</div>
+                    <div id="regexResult"></div>
+                </div>
+            </div>
+            <div class="tool-section">
+                <div class="tool-title">常用正则表达式</div>
+                <div class="result-content" id="commonRegex"></div>
+            </div>
+        </div>
+        
+        <div id="cron" class="tab-content">
+            <div class="tool-section">
+                <div class="tool-title">Cron 表达式解析</div>
+                <div class="input-group">
+                    <label>Cron 表达式（5位：分 时 日 月 周）：</label>
+                    <input type="text" id="cronInput" placeholder="例如：0 9 * * 1-5 或 */15 * * * *">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="parseCron()">解析 Cron</button>
+                    <button class="btn btn-primary" onclick="explainCron()">解释含义</button>
+                    <button class="btn btn-secondary" onclick="generateCron()">生成常用 Cron</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">解析结果：</div>
+                    <div class="cron-preview" id="cronResult"></div>
+                </div>
+            </div>
+            <div class="tool-section">
+                <div class="tool-title">Cron 表达式生成预览</div>
+                <div class="input-group">
+                    <label>选择执行频率：</label>
+                    <select id="cronPreset">
+                        <option value="">-- 选择预设 --</option>
+                        <option value="0 * * * *">每小时 (0 分)</option>
+                        <option value="0 0 * * *">每天午夜 (0 0)</option>
+                        <option value="0 9 * * *">每天早上 9 点</option>
+                        <option value="0 9 * * 1-5">工作日早上 9 点</option>
+                        <option value="0 0 * * 0">每周日午夜</option>
+                        <option value="0 0 1 * *">每月 1 日午夜</option>
+                        <option value="*/5 * * * *">每 5 分钟</option>
+                        <option value="*/15 * * * *">每 15 分钟</option>
+                        <option value="0 */2 * * *">每 2 小时</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="usePreset()">使用预设</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+        
+        const commonPatterns = [
+            ['手机号码', '/^1[3-9]\\d{9}$/'],
+            ['邮箱', '/^[\\w.-]+@[\\w.-]+\\.\\w+$/'],
+            ['URL', '/^https?:\\/\\/.+/'],
+            ['身份证号', '/^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]$/'],
+            ['IP地址', '/^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$/'],
+            ['日期 YYYY-MM-DD', '/^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/'],
+            ['时间 HH:mm:ss', '/^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$/'],
+            ['整数', '/^-?\\d+$/'],
+            ['小数', '/^-?\\d+\\.\\d+$/'],
+            ['中文', '/^[\\u4e00-\\u9fa5]+$/'],
+        ];
+        
+        let regexHtml = '';
+        commonPatterns.forEach(([name, pattern]) => {
+            regexHtml += `<div class="match-item"><span class="match-text">${name}</span>: ${pattern}</div>`;
+        });
+        document.getElementById('commonRegex').innerHTML = regexHtml;
+        
+        function testRegex() {
+            const pattern = document.getElementById('regexPattern').value;
+            const text = document.getElementById('regexText').value;
+            const g = document.getElementById('regexG').checked;
+            const i = document.getElementById('regexI').checked;
+            const m = document.getElementById('regexM').checked;
+            
+            if (!pattern) { showToast('请输入正则表达式'); return; }
+            if (!text) { showToast('请输入测试文本'); return; }
+            
+            try {
+                const flags = (g ? 'g' : '') + (i ? 'i' : '') + (m ? 'm' : '');
+                const regex = new RegExp(pattern, flags);
+                const matches = text.match(regex);
+                
+                let html = '';
+                if (matches) {
+                    html += `<div style="margin-bottom: 10px; color: #4caf50;">✓ 匹配到 ${matches.length} 个结果</div>`;
+                    matches.forEach((match, index) => {
+                        html += `<div class="match-item"><span class="match-text">${match}</span> <span class="match-index">位置: ${text.indexOf(match)}</span></div>`;
+                    });
+                } else {
+                    html = '<div class="match-item no-match">✗ 未匹配到任何结果</div>';
+                }
+                document.getElementById('regexResult').innerHTML = html;
+            } catch (e) {
+                document.getElementById('regexResult').innerHTML = `<div class="match-item no-match">错误: ${e.message}</div>`;
+            }
+        }
+        
+        function clearRegex() {
+            document.getElementById('regexPattern').value = '';
+            document.getElementById('regexText').value = '';
+            document.getElementById('regexResult').innerHTML = '';
+        }
+        
+        const cronFields = ['分钟', '小时', '日', '月', '星期'];
+        
+        function parseCron() {
+            const input = document.getElementById('cronInput').value.trim();
+            if (!input) { showToast('请输入 Cron 表达式'); return; }
+            
+            const parts = input.split(/\s+/);
+            if (parts.length < 5) { showToast('请输入完整的 5 位 Cron 表达式'); return; }
+            
+            let html = '';
+            parts.slice(0, 5).forEach((part, i) => {
+                html += `<div class="cron-item"><div class="cron-time">${cronFields[i]}: ${part}</div></div>`;
+            });
+            document.getElementById('cronResult').innerHTML = html;
+            showToast('解析成功');
+        }
+        
+        function explainCron() {
+            const input = document.getElementById('cronInput').value.trim();
+            if (!input) { showToast('请输入 Cron 表达式'); return; }
+            
+            const parts = input.split(/\s+/);
+            if (parts.length < 5) { showToast('请输入完整的 5 位 Cron 表达式'); return; }
+            
+            let desc = '';
+            const [min, hour, day, month, week] = parts;
+            
+            const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            
+            desc += `在 `;
+            if (min === '*') desc += '每分钟';
+            else if (min.includes('/')) desc += `每 ${min.split('/')[1]} 分钟`;
+            else desc += `第 ${min} 分钟`;
+            
+            if (hour === '*') desc += '、每小时';
+            else if (hour.includes('/')) desc += `、每 ${hour.split('/')[1]} 小时`;
+            else desc += `、${hour} 点`;
+            
+            if (day !== '*') desc += `、${day} 号`;
+            if (month !== '*') desc += `、${monthNames[parseInt(month) - 1] || month} `;
+            if (week !== '*') {
+                if (week.includes('-')) {
+                    const [start, end] = week.split('-');
+                    desc += `、${weekNames[parseInt(start)] || start} 到 ${weekNames[parseInt(end)] || end}`;
+                } else {
+                    desc += `、${weekNames[parseInt(week)] || week}`;
+                }
+            }
+            
+            desc += ' 执行';
+            
+            document.getElementById('cronResult').innerHTML = `<div class="cron-item"><div class="cron-desc">${desc}</div></div>`;
+            showToast('解释成功');
+        }
+        
+        function generateCron() {
+            document.getElementById('cronResult').innerHTML = `
+                <div class="cron-item"><div class="cron-desc">每 5 分钟: <strong>*/5 * * * *</strong></div></div>
+                <div class="cron-item"><div class="cron-desc">每 15 分钟: <strong>*/15 * * * *</strong></div></div>
+                <div class="cron-item"><div class="cron-desc">每小时: <strong>0 * * * *</strong></div></div>
+                <div class="cron-item"><div class="cron-desc">每天 0 点: <strong>0 0 * * *</strong></div></div>
+                <div class="cron-item"><div class="cron-desc">每天 9 点: <strong>0 9 * * *</strong></div></div>
+                <div class="cron-item"><div class="cron-desc">每周一至周五 9 点: <strong>0 9 * * 1-5</strong></div></div>
+                <div class="cron-item"><div class="cron-desc">每月 1 号 0 点: <strong>0 0 1 * *</strong></div></div>
+            `;
+        }
+        
+        function usePreset() {
+            const preset = document.getElementById('cronPreset').value;
+            if (preset) {
+                document.getElementById('cronInput').value = preset;
+                explainCron();
+            }
+        }
+    </script>
+</body>
+</html>

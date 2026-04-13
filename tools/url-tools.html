@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL工具 - 编码/解析</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #4a90d9; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; border: none; background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .tab.active { background: #4a90d9; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tool-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .tool-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #333; }
+        textarea { width: 100%; height: 120px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; resize: vertical; }
+        textarea:focus { outline: none; border-color: #4a90d9; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 8px; color: #666; font-size: 14px; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        input:focus { outline: none; border-color: #4a90d9; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .btn-primary { background: #4a90d9; color: #fff; }
+        .btn-primary:hover { background: #3a7bc8; }
+        .btn-secondary { background: #fff; color: #333; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #f5f5f5; }
+        .result { margin-top: 15px; }
+        .result-label { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .result-content { background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow: auto; }
+        .param-list { margin-top: 15px; }
+        .param-item { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .param-item input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .param-item .remove-btn { padding: 8px 12px; background: #ff3b30; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+        .add-param-btn { margin-top: 10px; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← 返回导航</a>
+        <h1>🔗 URL工具</h1>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="encode">URL 编解码</button>
+            <button class="tab" data-tab="parse">URL 参数解析</button>
+            <button class="tab" data-tab="build">URL 参数构建</button>
+        </div>
+        
+        <div id="encode" class="tab-content active">
+            <div class="tool-section">
+                <div class="tool-title">URL 编码/解码</div>
+                <textarea id="urlInput" placeholder="请输入 URL 或 URL 部分..."></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="encodeUrl()">URL 编码</button>
+                    <button class="btn btn-primary" onclick="decodeUrl()">URL 解码</button>
+                    <button class="btn btn-primary" onclick="encodeComponent()">编码 URL 组件</button>
+                    <button class="btn btn-primary" onclick="decodeComponent()">解码 URL 组件</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('urlInput').value=''; document.getElementById('urlResult').textContent='';">清空</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">结果：</div>
+                    <div class="result-content" id="urlResult"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="parse" class="tab-content">
+            <div class="tool-section">
+                <div class="tool-title">URL 参数解析</div>
+                <div class="input-group">
+                    <label>请输入 URL：</label>
+                    <input type="text" id="parseUrlInput" placeholder="例如：https://example.com?a=1&b=2">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="parseUrl()">解析 URL</button>
+                    <button class="btn btn-secondary" onclick="parseFromCurrent()">解析当前页面 URL</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">解析结果：</div>
+                    <div class="result-content" id="parseResult"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="build" class="tab-content">
+            <div class="tool-section">
+                <div class="tool-title">URL 参数构建</div>
+                <div class="input-group">
+                    <label>基础 URL：</label>
+                    <input type="text" id="baseUrl" placeholder="例如：https://example.com/api">
+                </div>
+                <div class="tool-title" style="margin-top: 20px;">参数列表：</div>
+                <div id="paramList" class="param-list">
+                    <div class="param-item">
+                        <input type="text" placeholder="参数名" class="param-key">
+                        <input type="text" placeholder="参数值" class="param-value">
+                        <button class="remove-btn" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                </div>
+                <button class="btn btn-secondary add-param-btn" onclick="addParam()">+ 添加参数</button>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="buildUrl()">构建 URL</button>
+                    <button class="btn btn-secondary" onclick="copyBuiltUrl()">复制 URL</button>
+                </div>
+                <div class="result">
+                    <div class="result-label">构建结果：</div>
+                    <div class="result-content" id="buildResult"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+        
+        function encodeUrl() {
+            const input = document.getElementById('urlInput').value;
+            document.getElementById('urlResult').textContent = encodeURI(input);
+            showToast('编码成功');
+        }
+        
+        function decodeUrl() {
+            try {
+                const input = document.getElementById('urlInput').value;
+                document.getElementById('urlResult').textContent = decodeURI(input);
+                showToast('解码成功');
+            } catch (e) {
+                document.getElementById('urlResult').textContent = '解码错误: ' + e.message;
+            }
+        }
+        
+        function encodeComponent() {
+            const input = document.getElementById('urlInput').value;
+            document.getElementById('urlResult').textContent = encodeURIComponent(input);
+            showToast('编码成功');
+        }
+        
+        function decodeComponent() {
+            try {
+                const input = document.getElementById('urlInput').value;
+                document.getElementById('urlResult').textContent = decodeURIComponent(input);
+                showToast('解码成功');
+            } catch (e) {
+                document.getElementById('urlResult').textContent = '解码错误: ' + e.message;
+            }
+        }
+        
+        function parseUrl() {
+            const url = document.getElementById('parseUrlInput').value;
+            if (!url) { showToast('请输入 URL'); return; }
+            
+            try {
+                const urlObj = new URL(url);
+                let result = `协议: ${urlObj.protocol}\n`;
+                result += `主机: ${urlObj.host}\n`;
+                result += `路径: ${urlObj.pathname}\n`;
+                if (urlObj.search) {
+                    result += `\n查询参数:\n`;
+                    urlObj.searchParams.forEach((value, key) => {
+                        result += `  ${key} = ${value}\n`;
+                    });
+                }
+                document.getElementById('parseResult').textContent = result;
+                showToast('解析成功');
+            } catch (e) {
+                document.getElementById('parseResult').textContent = 'URL 格式错误: ' + e.message;
+            }
+        }
+        
+        function parseFromCurrent() {
+            document.getElementById('parseUrlInput').value = window.location.href;
+            parseUrl();
+        }
+        
+        function addParam() {
+            const div = document.createElement('div');
+            div.className = 'param-item';
+            div.innerHTML = `
+                <input type="text" placeholder="参数名" class="param-key">
+                <input type="text" placeholder="参数值" class="param-value">
+                <button class="remove-btn" onclick="this.parentElement.remove()">×</button>
+            `;
+            document.getElementById('paramList').appendChild(div);
+        }
+        
+        function buildUrl() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            if (!baseUrl) { showToast('请输入基础 URL'); return; }
+            
+            try {
+                const urlObj = new URL(baseUrl);
+                const params = document.querySelectorAll('.param-item');
+                params.forEach(item => {
+                    const key = item.querySelector('.param-key').value;
+                    const value = item.querySelector('.param-value').value;
+                    if (key) urlObj.searchParams.set(key, value);
+                });
+                document.getElementById('buildResult').textContent = urlObj.toString();
+                showToast('构建成功');
+            } catch (e) {
+                document.getElementById('buildResult').textContent = 'URL 格式错误: ' + e.message;
+            }
+        }
+        
+        function copyBuiltUrl() {
+            const text = document.getElementById('buildResult').textContent;
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
+            }
+        }
+    </script>
+</body>
+</html>
